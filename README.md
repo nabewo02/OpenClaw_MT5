@@ -2,12 +2,14 @@
 
 MT5向けのEAとトレードアイデア集です。
 
-最初の実装として、FXの時間帯特性を使った **London Range Breakout EA** を追加しています。
+現在、FX向けのEAを2本追加しています。
 
 ## Contents
 
 - `EAs/LondonRangeBreakoutEA.mq5` - ロンドン時間帯のレンジブレイクアウトを狙うEA
 - `docs/LondonRangeBreakoutEA.md` - ロジック説明、パラメータ、検証方針
+- `EAs/TrendPullbackEA.mq5` - 上位足トレンド＋下位足押し目/戻り目で入るEA
+- `docs/TrendPullbackEA.md` - ロジック説明、パラメータ、改善ポイント
 
 ## Strategy Philosophy
 
@@ -19,7 +21,9 @@ MT5向けのEAとトレードアイデア集です。
 - スプレッド拡大の回避
 - 過剰最適化を避ける検証
 
-## First EA: London Range Breakout
+## Implemented EAs
+
+### 1. London Range Breakout
 
 概要:
 
@@ -27,6 +31,15 @@ MT5向けのEAとトレードアイデア集です。
 - ロンドン時間帯にそのレンジを終値ベースで上抜け/下抜けしたら順張り
 - ATRフィルタ、上位足トレンドフィルタ、最大スプレッド制限を適用
 - 1日あたりの最大取引回数を制限
+
+### 2. Trend Pullback
+
+概要:
+
+- H1 の EMA で中期トレンド方向を定義
+- M15 で押し目/戻り目を待つ
+- Entry EMA と RSI を使って、トレンド再開のタイミングを拾う
+- ATRベースの損切り/利確と最大スプレッド制限を適用
 
 ## Notes
 
