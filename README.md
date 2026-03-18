@@ -2,7 +2,7 @@
 
 MT5向けのEAとトレードアイデア集です。
 
-現在、FX向けのEAを2本追加しています。
+現在、FX向けのEAを3本追加しています。
 
 ## Contents
 
@@ -10,6 +10,8 @@ MT5向けのEAとトレードアイデア集です。
 - `docs/LondonRangeBreakoutEA.md` - ロジック説明、パラメータ、検証方針
 - `EAs/TrendPullbackEA.mq5` - 上位足トレンド＋下位足押し目/戻り目で入るEA
 - `docs/TrendPullbackEA.md` - ロジック説明、パラメータ、改善ポイント
+- `EAs/MeanReversionEA.mq5` - ボリンジャーバンド逸脱とRSIを使う短期平均回帰EA
+- `docs/MeanReversionEA.md` - ロジック説明、注意点、改善ポイント
 
 ## Strategy Philosophy
 
@@ -40,6 +42,15 @@ MT5向けのEAとトレードアイデア集です。
 - M15 で押し目/戻り目を待つ
 - Entry EMA と RSI を使って、トレンド再開のタイミングを拾う
 - ATRベースの損切り/利確と最大スプレッド制限を適用
+
+### 3. Mean Reversion
+
+概要:
+
+- ボリンジャーバンド外への逸脱を検知
+- RSI で短期的な過熱を確認
+- バンド内へ戻る動きを見て逆張り
+- ATRベースの損切り/利確とボラティリティ制限を適用
 
 ## Notes
 
