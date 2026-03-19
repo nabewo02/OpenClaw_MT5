@@ -1,10 +1,6 @@
 #property strict
-#property version   "1.00"
+#property version   "1.01"
 #property description "Short-term mean reversion EA using Bollinger Bands, RSI, and ATR-based exits"
-
-#include <Trade/Trade.mqh>
-
-CTrade trade;
 
 input ENUM_TIMEFRAMES InpEntryTF = PERIOD_M15;
 input int BollingerPeriod = 20;
@@ -37,16 +33,10 @@ int OnInit()
    bandsHandle = iBands(_Symbol, InpEntryTF, BollingerPeriod, 0, BollingerDeviation, PRICE_CLOSE);
    rsiHandle = iRSI(_Symbol, InpEntryTF, RSIPeriod, PRICE_CLOSE);
    atrHandle = iATR(_Symbol, InpEntryTF, ATRPeriod);
-
    if(bandsHandle == INVALID_HANDLE || rsiHandle == INVALID_HANDLE || atrHandle == INVALID_HANDLE)
-   {
-      Print("Indicator handle creation failed");
-      return(INIT_FAILED);
-   }
-
-   trade.SetExpertMagicNumber(MagicNumber);
+      return INIT_FAILED;
    ResetDailyCounterIfNeeded();
-   return(INIT_SUCCEEDED);
+   return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason)
@@ -59,7 +49,6 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    ResetDailyCounterIfNeeded();
-
    datetime currentBar = iTime(_Symbol, InpEntryTF, 0);
    if(currentBar == 0 || currentBar == lastBarTime)
       return;
@@ -67,13 +56,10 @@ void OnTick()
 
    if(!IsTradingWindow())
       return;
-
    if(tradesToday >= MaxTradesPerDay)
       return;
-
    if(OnePositionPerSymbol && PositionSelect(_Symbol))
       return;
-
    if(GetSpreadPoints() > MaxSpreadPoints)
       return;
 
@@ -122,9 +108,7 @@ void ResetDailyCounterIfNeeded()
 
 double GetSpreadPoints()
 {
-   double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-   return (ask - bid) / _Point;
+   return (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
 }
 
 double GetATRPoints()
@@ -151,11 +135,9 @@ bool GetBands(double &upper, double &middle, double &lower)
    ArraySetAsSeries(upperBuf, true);
    ArraySetAsSeries(middleBuf, true);
    ArraySetAsSeries(lowerBuf, true);
-
    if(CopyBuffer(bandsHandle, 0, 1, 1, upperBuf) <= 0) return false;
    if(CopyBuffer(bandsHandle, 1, 1, 1, middleBuf) <= 0) return false;
    if(CopyBuffer(bandsHandle, 2, 1, 1, lowerBuf) <= 0) return false;
-
    upper = upperBuf[0];
    middle = middleBuf[0];
    lower = lowerBuf[0];
@@ -166,57 +148,52 @@ double CalculateVolume(double stopPoints)
 {
    if(stopPoints <= 0)
       return 0.0;
-
-   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
-   double riskMoney = balance * (RiskPercent / 100.0);
-
+   double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * (RiskPercent / 100.0);
    double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
    double tickSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
    double volumeStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
    double minVolume = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
    double maxVolume = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
-
    if(tickValue <= 0 || tickSize <= 0 || volumeStep <= 0)
       return minVolume;
-
    double pointValuePerLot = tickValue * (_Point / tickSize);
-   if(pointValuePerLot <= 0)
-      return minVolume;
-
    double rawVolume = riskMoney / (stopPoints * pointValuePerLot);
    double stepped = MathFloor(rawVolume / volumeStep) * volumeStep;
-   double volume = MathMax(minVolume, MathMin(maxVolume, stepped));
-   return NormalizeDouble(volume, 2);
+   return NormalizeDouble(MathMax(minVolume, MathMin(maxVolume, stepped)), 2);
+}
+
+bool SendMarketOrder(ENUM_ORDER_TYPE orderType, double volume, double price, double sl, double tp, string comment)
+{
+   MqlTradeRequest request;
+   MqlTradeResult result;
+   ZeroMemory(request);
+   ZeroMemory(result);
+   request.action = TRADE_ACTION_DEAL;
+   request.magic = MagicNumber;
+   request.symbol = _Symbol;
+   request.volume = volume;
+   request.type = orderType;
+   request.price = price;
+   request.sl = sl;
+   request.tp = tp;
+   request.deviation = 20;
+   request.type_filling = ORDER_FILLING_IOC;
+   request.comment = comment;
+   if(!OrderSend(request, result))
+      return false;
+   return (result.retcode == TRADE_RETCODE_DONE || result.retcode == TRADE_RETCODE_PLACED);
 }
 
 void OpenPosition(ENUM_ORDER_TYPE orderType, double atrPoints)
 {
-   double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-   double price = (orderType == ORDER_TYPE_BUY) ? ask : bid;
-
+   double price = (orderType == ORDER_TYPE_BUY) ? SymbolInfoDouble(_Symbol, SYMBOL_ASK) : SymbolInfoDouble(_Symbol, SYMBOL_BID);
    double stopPoints = atrPoints * StopATRMult;
    double takePoints = atrPoints * TakeATRMult;
    double volume = CalculateVolume(stopPoints);
-
    if(volume <= 0)
       return;
-
-   double sl = 0.0;
-   double tp = 0.0;
-
-   if(orderType == ORDER_TYPE_BUY)
-   {
-      sl = price - stopPoints * _Point;
-      tp = price + takePoints * _Point;
-      if(trade.Buy(volume, _Symbol, price, sl, tp, "Mean reversion buy"))
-         tradesToday++;
-   }
-   else if(orderType == ORDER_TYPE_SELL)
-   {
-      sl = price + stopPoints * _Point;
-      tp = price - takePoints * _Point;
-      if(trade.Sell(volume, _Symbol, price, sl, tp, "Mean reversion sell"))
-         tradesToday++;
-   }
+   double sl = (orderType == ORDER_TYPE_BUY) ? price - stopPoints * _Point : price + stopPoints * _Point;
+   double tp = (orderType == ORDER_TYPE_BUY) ? price + takePoints * _Point : price - takePoints * _Point;
+   if(SendMarketOrder(orderType, volume, price, sl, tp, orderType == ORDER_TYPE_BUY ? "Mean reversion buy" : "Mean reversion sell"))
+      tradesToday++;
 }

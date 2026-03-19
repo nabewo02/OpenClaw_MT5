@@ -8,6 +8,7 @@ MT5向けのEAとトレードアイデア集です。
 
 - `EAs/LondonRangeBreakoutEA.mq5` - ロンドン時間帯のレンジブレイクアウトを狙うEA
 - `docs/LondonRangeBreakoutEA.md` - ロジック説明、パラメータ、検証方針
+- `docs/LondonRangeBreakoutEA_EURUSD_Findings_2026-03.md` - EURUSD に対する一次検証メモ
 - `EAs/TrendPullbackEA.mq5` - 上位足トレンド＋下位足押し目/戻り目で入るEA
 - `docs/TrendPullbackEA.md` - ロジック説明、パラメータ、改善ポイント
 - `EAs/MeanReversionEA.mq5` - ボリンジャーバンド逸脱とRSIを使う短期平均回帰EA
@@ -34,6 +35,12 @@ MT5向けのEAとトレードアイデア集です。
 - ATRフィルタ、上位足トレンドフィルタ、最大スプレッド制限を適用
 - 1日あたりの最大取引回数を制限
 
+一次検証の暫定所見:
+
+- 3通貨比較では EURUSD が最有力
+- コスト感度が高く、スプレッド条件が悪いと崩れやすい
+- ロンドン時間を少し短く切る案に改善余地あり
+
 ### 2. Trend Pullback
 
 概要:
@@ -52,11 +59,20 @@ MT5向けのEAとトレードアイデア集です。
 - バンド内へ戻る動きを見て逆張り
 - ATRベースの損切り/利確とボラティリティ制限を適用
 
+## Research Status
+
+現時点では、最初に深掘りする対象を以下の順に見ています。
+
+- 第1候補: EURUSD / London Range Breakout
+- 第2候補: USDJPY / London Range Breakout
+- 保留: GBPUSD
+
 ## Notes
 
 - デフォルト設定は研究用のたたき台です
 - 実運用前に、必ずブローカー条件・スプレッド・約定品質を確認してください
 - ニュースフィルタは将来的な拡張項目です。現状は手動回避または時間帯制限を前提としています
+- バックテスト所見は、CSV直読みの再現検証と MT5 テスター本番検証を分けて扱ってください
 
 ## License
 

@@ -1,10 +1,6 @@
 #property strict
-#property version   "1.00"
+#property version   "1.01"
 #property description "London session breakout EA based on Asia range"
-
-#include <Trade/Trade.mqh>
-
-CTrade trade;
 
 input ENUM_TIMEFRAMES InpSignalTF = PERIOD_M15;
 input ENUM_TIMEFRAMES InpTrendTF = PERIOD_H1;
@@ -43,7 +39,6 @@ int OnInit()
       return(INIT_FAILED);
    }
 
-   trade.SetExpertMagicNumber(MagicNumber);
    ResetDailyCounterIfNeeded();
    return(INIT_SUCCEEDED);
 }
@@ -67,13 +62,10 @@ void OnTick()
 
    if(!IsTradingWindow())
       return;
-
    if(tradesToday >= MaxTradesPerDay)
       return;
-
    if(OnePositionPerSymbol && PositionSelect(_Symbol))
       return;
-
    if(GetSpreadPoints() > MaxSpreadPoints)
       return;
 
@@ -90,11 +82,8 @@ void OnTick()
    double prevHigh = iHigh(_Symbol, InpSignalTF, 1);
    double prevLow = iLow(_Symbol, InpSignalTF, 1);
 
-   bool upTrend = IsTrendUp();
-   bool downTrend = IsTrendDown();
-
-   bool buySignal = upTrend && prevClose > asiaHigh && prevHigh > asiaHigh;
-   bool sellSignal = downTrend && prevClose < asiaLow && prevLow < asiaLow;
+   bool buySignal = IsTrendUp() && prevClose > asiaHigh && prevHigh > asiaHigh;
+   bool sellSignal = IsTrendDown() && prevClose < asiaLow && prevLow < asiaLow;
 
    if(buySignal)
       OpenPosition(ORDER_TYPE_BUY, atrPoints);
@@ -151,10 +140,7 @@ bool GetAsiaRange(double &asiaHigh, double &asiaLow)
       }
    }
 
-   if(asiaHigh == -DBL_MAX || asiaLow == DBL_MAX)
-      return false;
-
-   return true;
+   return !(asiaHigh == -DBL_MAX || asiaLow == DBL_MAX);
 }
 
 double GetATRPoints()
@@ -164,6 +150,15 @@ double GetATRPoints()
    if(CopyBuffer(atrHandle, 0, 1, 1, buffer) <= 0)
       return -1.0;
    return buffer[0] / _Point;
+}
+
+double GetIndicatorValue(int handle)
+{
+   double buffer[];
+   ArraySetAsSeries(buffer, true);
+   if(CopyBuffer(handle, 0, 1, 1, buffer) <= 0)
+      return -1.0;
+   return buffer[0];
 }
 
 bool IsTrendUp()
@@ -180,20 +175,9 @@ bool IsTrendDown()
    return (fast < slow && fast > 0 && slow > 0);
 }
 
-double GetIndicatorValue(int handle)
-{
-   double buffer[];
-   ArraySetAsSeries(buffer, true);
-   if(CopyBuffer(handle, 0, 1, 1, buffer) <= 0)
-      return -1.0;
-   return buffer[0];
-}
-
 double GetSpreadPoints()
 {
-   double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-   return (ask - bid) / _Point;
+   return (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
 }
 
 double CalculateVolume(double stopPoints)
@@ -203,7 +187,6 @@ double CalculateVolume(double stopPoints)
 
    double balance = AccountInfoDouble(ACCOUNT_BALANCE);
    double riskMoney = balance * (RiskPercent / 100.0);
-
    double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
    double tickSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
    double volumeStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
@@ -219,38 +202,49 @@ double CalculateVolume(double stopPoints)
 
    double rawVolume = riskMoney / (stopPoints * pointValuePerLot);
    double stepped = MathFloor(rawVolume / volumeStep) * volumeStep;
-   double volume = MathMax(minVolume, MathMin(maxVolume, stepped));
-   return NormalizeDouble(volume, 2);
+   return NormalizeDouble(MathMax(minVolume, MathMin(maxVolume, stepped)), 2);
+}
+
+bool SendMarketOrder(ENUM_ORDER_TYPE orderType, double volume, double price, double sl, double tp, string comment)
+{
+   MqlTradeRequest request;
+   MqlTradeResult result;
+   ZeroMemory(request);
+   ZeroMemory(result);
+
+   request.action = TRADE_ACTION_DEAL;
+   request.magic = MagicNumber;
+   request.symbol = _Symbol;
+   request.volume = volume;
+   request.type = orderType;
+   request.price = price;
+   request.sl = sl;
+   request.tp = tp;
+   request.deviation = 20;
+   request.type_filling = ORDER_FILLING_IOC;
+   request.comment = comment;
+
+   if(!OrderSend(request, result))
+   {
+      Print("OrderSend failed: ", GetLastError());
+      return false;
+   }
+
+   return (result.retcode == TRADE_RETCODE_DONE || result.retcode == TRADE_RETCODE_PLACED);
 }
 
 void OpenPosition(ENUM_ORDER_TYPE orderType, double atrPoints)
 {
-   double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-   double price = (orderType == ORDER_TYPE_BUY) ? ask : bid;
-
+   double price = (orderType == ORDER_TYPE_BUY) ? SymbolInfoDouble(_Symbol, SYMBOL_ASK) : SymbolInfoDouble(_Symbol, SYMBOL_BID);
    double stopPoints = atrPoints * StopATRMult;
    double takePoints = atrPoints * TakeATRMult;
    double volume = CalculateVolume(stopPoints);
-
    if(volume <= 0)
       return;
 
-   double sl = 0.0;
-   double tp = 0.0;
+   double sl = (orderType == ORDER_TYPE_BUY) ? price - stopPoints * _Point : price + stopPoints * _Point;
+   double tp = (orderType == ORDER_TYPE_BUY) ? price + takePoints * _Point : price - takePoints * _Point;
 
-   if(orderType == ORDER_TYPE_BUY)
-   {
-      sl = price - stopPoints * _Point;
-      tp = price + takePoints * _Point;
-      if(trade.Buy(volume, _Symbol, price, sl, tp, "London breakout buy"))
-         tradesToday++;
-   }
-   else if(orderType == ORDER_TYPE_SELL)
-   {
-      sl = price + stopPoints * _Point;
-      tp = price - takePoints * _Point;
-      if(trade.Sell(volume, _Symbol, price, sl, tp, "London breakout sell"))
-         tradesToday++;
-   }
+   if(SendMarketOrder(orderType, volume, price, sl, tp, orderType == ORDER_TYPE_BUY ? "London breakout buy" : "London breakout sell"))
+      tradesToday++;
 }
