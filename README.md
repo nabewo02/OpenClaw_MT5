@@ -13,6 +13,12 @@ MT5向けのEAとトレードアイデア集です。
 - `docs/TrendPullbackEA.md` - ロジック説明、パラメータ、改善ポイント
 - `EAs/MeanReversionEA.mq5` - ボリンジャーバンド逸脱とRSIを使う短期平均回帰EA
 - `docs/MeanReversionEA.md` - ロジック説明、注意点、改善ポイント
+- `EAs/USDJPYH1TrendFollowEA.mq5` - USDJPY 向け H1 EMA クロストレンド追随EA
+- `docs/USDJPYH1TrendFollowEA.md` - ロジック説明、初期パラメータ
+- `EAs/USDJPYPrevDayBreakoutEA.mq5` - USDJPY 向け前日高値安値ブレイクEA
+- `docs/USDJPYPrevDayBreakoutEA.md` - ロジック説明、初期パラメータ
+- `EAs/EURUSDPrevDayBreakoutEA.mq5` - EURUSD 向け前日高値安値ブレイクEA
+- `docs/EURUSDPrevDayBreakoutEA.md` - ロジック説明、初期パラメータ
 
 ## Strategy Philosophy
 
@@ -58,6 +64,33 @@ MT5向けのEAとトレードアイデア集です。
 - RSI で短期的な過熱を確認
 - バンド内へ戻る動きを見て逆張り
 - ATRベースの損切り/利確とボラティリティ制限を適用
+
+### 4. USDJPY H1 Trend Follow
+
+概要:
+
+- 完成済み H1 EMA20 / EMA50 クロスで方向転換を検知
+- 次の M15 でエントリー
+- 利確固定なし、反対クロスまたは ATR ストップで終了
+- USDJPY 専用候補として扱う
+
+### 5. USDJPY Previous Day Breakout
+
+概要:
+
+- 前日高値 / 安値の M15 終値ブレイクを順張り
+- H1 EMA20 / EMA50 方向一致を要求
+- ATR フィルタを強めに置く
+- 1日1回のブレイク追随
+
+### 6. EURUSD Previous Day Breakout
+
+概要:
+
+- EURUSD 向けに高ボラ日だけを狙う前日ブレイク
+- H1 EMA20 / EMA50 方向一致を要求
+- スプレッド条件を厳しめに設定
+- 薄い優位性を守る用途の候補
 
 ## Research Status
 
