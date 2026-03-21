@@ -19,6 +19,10 @@ MT5向けのEAとトレードアイデア集です。
 - `docs/USDJPYPrevDayBreakoutEA.md` - ロジック説明、初期パラメータ
 - `EAs/EURUSDPrevDayBreakoutEA.mq5` - EURUSD 向け前日高値安値ブレイクEA
 - `docs/EURUSDPrevDayBreakoutEA.md` - ロジック説明、初期パラメータ
+- `EAs/Tokyo955USDJPYMicroEA.mq5` - 東京 9:55 JST Fix を M1 proxy で近似した USDJPY マイクロEA
+- `docs/Tokyo955USDJPYMicroEA.md` - ロジック説明、時刻補正、初期パラメータ
+- `docs/Tokyo955USDJPYMicroEA_Findings_2026-03.md` - 一次検証結果と採用判断
+- `research/Tokyo955USDJPYMicro_m1_proxy_scan.py` - M1 proxy 再現検証スクリプト
 
 ## Strategy Philosophy
 
@@ -91,6 +95,15 @@ MT5向けのEAとトレードアイデア集です。
 - H1 EMA20 / EMA50 方向一致を要求
 - スプレッド条件を厳しめに設定
 - 薄い優位性を守る用途の候補
+
+### 7. Tokyo 9:55 USDJPY Micro
+
+概要:
+
+- 東京 9:55 JST Fix まわりの短時間フローを M1 で近似
+- 冬時間 GMT+2 / 夏時間 GMT+3 のサーバー時刻を前提に補正
+- continuation / reversal / auto を切り替え可能
+- 一次検証では優位性確認に失敗しており、現状は研究用扱い
 
 ## Research Status
 
