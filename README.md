@@ -2,7 +2,7 @@
 
 MT5向けのEAとトレードアイデア集です。
 
-現在、FX向けのEAを3本追加しています。
+現在、FX向けのEAを8本追加しています。
 
 ## Contents
 
@@ -23,6 +23,10 @@ MT5向けのEAとトレードアイデア集です。
 - `docs/Tokyo955USDJPYMicroEA.md` - ロジック説明、時刻補正、初期パラメータ
 - `docs/Tokyo955USDJPYMicroEA_Findings_2026-03.md` - 一次検証結果と採用判断
 - `research/Tokyo955USDJPYMicro_m1_proxy_scan.py` - M1 proxy 再現検証スクリプト
+- `EAs/WMRFixFadeEA.mq5` - WM/Reuters 16:00 London fix の short-term fade EA
+- `docs/WMRFixFadeEA.md` - ロジック説明、初期パラメータ
+- `docs/WMRFixFadeEA_Findings_2026-03.md` - tick proxy 検証結果
+- `research/WMRFixFade_tick_proxy_backtest.py` - WMR tick proxy 検証ヘルパー
 
 ## Strategy Philosophy
 
@@ -105,12 +109,22 @@ MT5向けのEAとトレードアイデア集です。
 - continuation / reversal / auto を切り替え可能
 - 一次検証では優位性確認に失敗しており、現状は研究用扱い
 
+### 8. WMR Fix Fade
+
+概要:
+
+- WM/Reuters 16:00 London fix の直後を逆張りで狙う短期イベント戦略
+- pre-fix の spread / tick 活性と、fix 窓の move を使って参加日を絞る
+- tick ベースの proxy 検証では EURUSD が最有力
+- 毎日打つのではなく、強い fix 日だけを選ぶ設計
+
 ## Research Status
 
-現時点では、最初に深掘りする対象を以下の順に見ています。
+現時点では、深掘り優先度を以下の順に見ています。
 
-- 第1候補: EURUSD / London Range Breakout
-- 第2候補: USDJPY / London Range Breakout
+- 第1候補: EURUSD / WMR Fix Fade
+- 第2候補: USDJPY / H1 Trend Follow
+- 第3候補: EURUSD / London Range Breakout
 - 保留: GBPUSD
 
 ## Notes
